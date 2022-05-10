@@ -19,29 +19,44 @@ import IdVerificationPage from './id-verification';
 import CoachingConsent from './account-settings/coaching/CoachingConsent';
 import appMessages from './i18n';
 
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { getConfig } from '@edx/frontend-platform';
+
 import './index.scss';
 
 subscribe(APP_READY, () => {
-  ReactDOM.render(
-    <AppProvider store={configureStore()}>
-      <Switch>
-        <Route path="/coaching_consent" component={CoachingConsent} />
-        <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
-          <Header />
-          <main className="flex-grow-1">
-            <Switch>
-              <Route path="/id-verification" component={IdVerificationPage} />
-              <Route exact path="/" component={AccountSettingsPage} />
-              <Route path="/notfound" component={NotFoundPage} />
-              <Route path="*" component={NotFoundPage} />
-            </Switch>
-          </main>
-          <Footer />
-        </div>
-      </Switch>
-    </AppProvider>,
-    document.getElementById('root'),
-  );
+
+  const { username } = getAuthenticatedUser()
+  let url = `${getConfig().LMS_BASE_URL}/api/user/v1/accounts/${username}`
+
+  getAuthenticatedHttpClient().get(url).then(
+    data => {
+      console.log("Account Data")
+      console.log(data)
+      console.log(data.data.name)
+      ReactDOM.render(
+        <AppProvider store={configureStore()}>
+          <Switch>
+            <Route path="/coaching_consent" component={CoachingConsent} />
+            <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
+              <Header fullName={data.data.name}/>
+              <main className="flex-grow-1">
+                <Switch>
+                  <Route path="/id-verification" component={IdVerificationPage} />
+                  <Route exact path="/" component={AccountSettingsPage} />
+                  <Route path="/notfound" component={NotFoundPage} />
+                  <Route path="*" component={NotFoundPage} />
+                </Switch>
+              </main>
+              <Footer />
+            </div>
+          </Switch>
+        </AppProvider>,
+        document.getElementById('root'),
+      );
+    }
+  )
 });
 
 subscribe(APP_INIT_ERROR, (error) => {
